@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Nederlands Woorden Trainer</title>
+    <style>
+        :root {
+            --primary: #FF9F43;
+            --success: #28C76F;
+            --danger: #EA5455;
+            --bg: #F8F9FA;
+            --text: #333333;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+        body { background-color: var(--bg); color: var(--text); display: flex; flex-direction: column; align-items: center; min-height: 100vh; padding: 15px; }
+        .container { width: 100%; max-width: 500px; background: white; padding: 20px; border-radius: 16px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); margin-top: 10px; text-align: center; }
+        .header { display: flex; justify-content: space-between; width: 100%; max-width: 500px; padding: 5px; font-size: 14px; color: #666; font-weight: bold; }
+        .image-box { width: 100%; height: 260px; background: #eee; border-radius: 12px; margin: 15px 0; overflow: hidden; display: flex; align-items: center; justify-content: center; position: relative; }
+        .image-box img { width: 100%; height: 100%; object-fit: cover; }
+        .input-box { width: 100%; padding: 14px; font-size: 18px; border: 2px solid #ddd; border-radius: 10px; outline: none; text-align: center; transition: all 0.2s; margin-bottom: 15px; }
+        .input-box:focus { border-color: var(--primary); box-shadow: 0 0 8px rgba(255, 159, 67, 0.2); }
+        .btn-skip { width: 100%; padding: 12px; background-color: #f1f1f1; border: none; color: #555; font-size: 16px; font-weight: bold; border-radius: 10px; cursor: pointer; transition: background 0.2s; }
+        .btn-skip:active { background-color: #e0e0e0; }
+        .feedback { min-height: 24px; font-size: 16px; font-weight: bold; margin: 10px 0; transition: all 0.2s; }
+        .feedback.correct { color: var(--success); }
+        .feedback.wrong { color: var(--danger); animation: shake 0.3s; }
+        .stats-panel { display: flex; justify-content: space-around; width: 100%; max-width: 500px; background: #FFF; padding: 15px; border-radius: 12px; margin-top: 20px; box-shadow: 0 2px 10px rgba(0,0,0,0.02); font-size: 14px; }
+        .stat-item span { display: block; font-size: 20px; font-weight: bold; margin-top: 5px; }
+        .stat-item.total span { color: var(--primary); }
+        .stat-item.correct span { color: var(--success); }
+        .stat-item.wrong span { color: var(--danger); }
+        @keyframes shake { 0%, 100% { transform: translateX(0); } 20%, 60% { transform: translateX(-5px); } 40%, 80% { transform: translateX(5px); } }
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <span id="progress-text">Loading...</span>
+        <span>🇳🇱 Vlaams Trainer</span>
+    </div>
+
+    <div class="container">
+        <div class="image-box">
+            <img id="word-image" src="" alt="Word Image">
+        </div>
+
+        <div id="feedback-msg" class="feedback"></div>
+
+        <!-- 开启自动纠错关闭，关闭首字母大写，方便输入 -->
+        <input type="text" id="word-input" class="input-box" placeholder="Typ het Nederlandse woord..." autocomplete="off" autocapitalize="off" spellcheck="false">
+        
+        <button id="skip-btn" class="btn-skip">Ik weet het niet (不知道)</button>
+    </div>
+
+    <div class="stats-panel">
+        <div class="stat-item total">Voltooid (完成)<span id="stat-total">0</span></div>
+        <div class="stat-item correct">Goed (正确)<span id="stat-correct">0</span></div>
+        <div class="stat-item wrong">Fout (错误)<span id="stat-wrong">0</span></div>
+    </div>
+
+    <script>
+        // 内置第一期体验单词（采用高清晰无版权大图）
+        const defaultWords = [
+            { word: "appel", image: "https://images.unsplash.com/photo-1560806887-1e4cd0b6cbd6?w=600&auto=format&fit=crop" },
+            { word: "fiets", image: "https://images.unsplash.com/photo-1485965120184-e220f721d03e?w=600&auto=format&fit=crop" },
+            { word: "kat", image: "https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba?w=600&auto=format&fit=crop" },
+            { word: "hond", image: "https://images.unsplash.com/photo-1543466835-00a7907e9de1?w=600&auto=format&fit=crop" },
+            { word: "auto", image: "https://images.unsplash.com/photo-1503376780353-7e6692767b70?w=600&auto=format&fit=crop" }
+        ];
+
+        let words = [...defaultWords];
+        let currentIndex = 0;
+        let countTotal = 0;
+        let countCorrect = 0;
+        let countWrong = 0;
+        let isLocked = false; // 防止手速太快重复触发
+
+        const imageEl = document.getElementById('word-image');
+        const inputEl = document.getElementById('word-input');
+        const feedbackEl = document.getElementById('feedback-msg');
+        const skipBtn = document.getElementById('skip-btn');
+        const progressEl = document.getElementById('progress-text');
+        
+        const statTotalEl = document.getElementById('stat-total');
+        const statCorrectEl = document.getElementById('stat-correct');
+        const statWrongEl = document.getElementById('stat-wrong');
+
+        // 洗牌算法：打乱单词顺序
+        function shuffle(array) {
+            for (let i = array.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [array[i], array[j]] = [array[j], array[i]];
+            }
+        }
+
+        function initGame() {
+            shuffle(words);
+            currentIndex = 0;
+            loadQuestion();
+        }
+
+        function loadQuestion() {
+            if (currentIndex >= words.length) {
+                // 如果学完一轮，重新打乱循环
+                shuffle(words);
+                currentIndex = 0;
+            }
+            
+            isLocked = false;
+            const currentItem = words[currentIndex];
+            imageEl.src = currentItem.image;
+            inputEl.value = "";
+            inputEl.disabled = false;
+            feedbackEl.innerText = "";
+            feedbackEl.className = "feedback";
+            progressEl.innerText = `Word: ${currentIndex + 1} / ${words.length}`;
+            inputEl.focus();
+        }
+
+        // 核心逻辑：监听用户输入
+        inputEl.addEventListener('input', (e) => {
+            if (isLocked) return;
+            
+            const userAnswer = e.target.value.trim().toLowerCase();
+            const correctAnswer = words[currentIndex].word.toLowerCase();
+
+            // 当用户输入的长度和正确答案一致时，或者完全一致时触发判断
+            if (userAnswer === correctAnswer) {
+                isLocked = true;
+                inputEl.disabled = true;
+                feedbackEl.innerText = "✅ Goed zo! (太棒了!)";
+                feedbackEl.className = "feedback correct";
+                
+                countCorrect++;
+                countTotal++;
+                updateStats();
+
+                setTimeout(() => {
+                    currentIndex++;
+                    loadQuestion();
+                }, 1000); // 1秒后自动下一题
+            }
+        });
+
+        // 监听回车键：如果输错了按回车清空
+        inputEl.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && !isLocked) {
+                const userAnswer = inputEl.value.trim().toLowerCase();
+                const correctAnswer = words[currentIndex].word.toLowerCase();
+
+                if (userAnswer !== correctAnswer && userAnswer.length > 0) {
+                    feedbackEl.innerText = "❌ Fout! Probeer opnieuw. (再试一次)";
+                    feedbackEl.className = "feedback wrong";
+                    inputEl.value = ""; // 清空输入框
+                    countWrong++;
+                    updateStats();
+                }
+            }
+        });
+
+        // "不会" 按钮逻辑
+        skipBtn.addEventListener('click', () => {
+            if (isLocked) return;
+            isLocked = true;
+            inputEl.disabled = true;
+            
+            const correctAnswer = words[currentIndex].word;
+            feedbackEl.innerText = `💡 Antwoord: ${correctAnswer}`;
+            feedbackEl.className = "feedback";
+            
+            countTotal++;
+            updateStats();
+
+            setTimeout(() => {
+                currentIndex++;
+                loadQuestion();
+            }, 2000); // 展示答案2秒后跳转
+        });
+
+        function updateStats() {
+            statTotalEl.innerText = countTotal;
+            statCorrectEl.innerText = countCorrect;
+            statWrongEl.innerText = countWrong;
+        }
+
+        // 启动游戏
+        initGame();
+    </script>
+</body>
+</html>
