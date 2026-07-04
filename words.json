@@ -33,7 +33,7 @@
   { "article": "de", "word": "badkamer", "english": "bathroom tub" },
   { "article": "het", "word": "toilet", "english": "toilet seat" },
   { "article": "de", "word": "deur", "english": "wooden door" },
-  { "article": "het", "window": "raam", "english": "glass window" },
+  { "article": "het", "word": "raam", "english": "glass window" },
   { "article": "de", "word": "tafel", "english": "wooden table" },
   { "article": "de", "word": "stoel", "english": "modern chair" },
   { "article": "het", "word": "bed", "english": "comfortable bed" },
