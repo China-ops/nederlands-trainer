@@ -1,0 +1,17 @@
+[
+  { "article": "de", "word": "appel", "english": "apple" },
+  { "article": "de", "word": "fiets", "english": "bicycle" },
+  { "article": "de", "word": "kat", "english": "cat" },
+  { "article": "het", "word": "boek", "english": "book" },
+  { "article": "het", "word": "huis", "english": "house" },
+  { "article": "de", "word": "auto", "english": "car" },
+  { "article": "het", "word": "brood", "english": "bread" },
+  { "article": "de", "word": "hond", "english": "dog" },
+  { "article": "de", "word": "stoel", "english": "chair" },
+  { "article": "de", "word": "tafel", "english": "table" },
+  { "article": "de", "word": "koffie", "english": "coffee" },
+  { "article": "het", "word": "bier", "english": "beer" },
+  { "article": "de", "word": "banaan", "english": "banana" },
+  { "article": "de", "word": "vogel", "english": "bird" },
+  { "article": "de", "word": "sleutel", "english": "key" }
+]
